@@ -1,100 +1,186 @@
-import React from 'react';
+import React, { memo } from 'react';
 import styles from './HUD.module.css';
+
+// Constants
+const HEALTH_THRESHOLDS = {
+  HIGH: 60,
+  MEDIUM: 30,
+} as const
+
+const TURBO_SETTINGS = {
+  DEFAULT_WIDTH: '75%',
+  COLOR: '#00ffff',
+  GLOW: '0 0 10px #00ffff',
+} as const
+
+// Types
+interface Position3D {
+  x: number;
+  y: number;
+  z: number;
+}
 
 interface HUDProps {
   health: number;
   lives: number;
   velocity: number;
-  position: { x: number; y: number; z: number };
+  position: Position3D;
 }
 
-export const HUD: React.FC<HUDProps> = ({ health, lives, velocity, position }) => {
-  const getHealthBarClass = () => {
-    if (health > 60) return styles.high;
-    if (health > 30) return styles.medium;
-    return styles.low;
-  };
+interface StatPanelProps {
+  children: React.ReactNode;
+  className?: string;
+}
 
-  // Format time like "00:00"
-  const getGameTime = () => {
-    const date = new Date();
-    return `${String(date.getMinutes()).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}`;
-  };
+// Utility functions
+const formatTime = () => {
+  const date = new Date();
+  return `${String(date.getMinutes()).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}`;
+};
 
+const getHealthBarClass = (health: number) => {
+  if (health > HEALTH_THRESHOLDS.HIGH) return styles.high;
+  if (health > HEALTH_THRESHOLDS.MEDIUM) return styles.medium;
+  return styles.low;
+};
+
+// Component parts
+function StatPanel({ children, className }: StatPanelProps) {
   return (
-    <div className={styles.hudContainer}>
-      {/* Left panel with health and lives */}
-      <div className={styles.statsPanel}>
-        <div className={styles.stat}>
-          <span>DAMAGE</span>
-          <div className={styles.healthBarContainer}>
-            <div 
-              className={`${styles.healthBarFill} ${getHealthBarClass()}`}
-              style={{ width: `${health}%` }}
-            />
-          </div>
-        </div>
-        <div className={styles.stat}>
-          <span>LIVES</span>
-          <div className={styles.lives}>
-            {[...Array(lives)].map((_, i) => (
-              <div key={i} className={styles.life} />
-            ))}
-          </div>
-        </div>
-        <div className={styles.stat}>
-          <span>TURBO</span>
-          <div className={styles.healthBarContainer}>
-            <div 
-              className={styles.healthBarFill}
-              style={{ 
-                width: '75%',
-                backgroundColor: '#00ffff',
-                boxShadow: '0 0 10px #00ffff'
-              }}
-            />
-          </div>
-        </div>
-      </div>
+    <div className={`${styles.statsPanel} ${className || ''}`}>
+      {children}
+    </div>
+  )
+}
 
-      {/* Right panel with weapons */}
-      <div className={`${styles.statsPanel} ${styles.weaponsPanel}`}>
-        <div className={styles.stat}>
-          <span>WEAPON</span>
-          <span>SPECIAL</span>
-        </div>
-        <div className={styles.stat}>
-          <span>AMMO</span>
-          <span>12</span>
-        </div>
-        <div className={styles.stat}>
-          <span>TIME</span>
-          <span>{getGameTime()}</span>
-        </div>
-      </div>
+const MemoizedStatPanel = memo(StatPanel)
+MemoizedStatPanel.displayName = 'StatPanel'
 
-      {/* Speed meter */}
-      <div className={styles.velocityMeter}>
-        {Math.abs(velocity).toFixed(0)}
-      </div>
-
-      {/* Minimap */}
-      <div className={styles.minimap}>
+function HealthBar({ health }: { health: number }) {
+  return (
+    <div className={styles.stat}>
+      <span>DAMAGE</span>
+      <div className={styles.healthBarContainer}>
         <div 
-          className={styles.playerDot}
-          style={{
-            position: 'absolute',
-            left: '50%',
-            top: '50%',
-            transform: `translate(-50%, -50%) rotate(${Math.atan2(position.z, position.x)}rad)`
+          className={`${styles.healthBarFill} ${getHealthBarClass(health)}`}
+          style={{ width: `${health}%` }}
+        />
+      </div>
+    </div>
+  )
+}
+
+const MemoizedHealthBar = memo(HealthBar)
+MemoizedHealthBar.displayName = 'HealthBar'
+
+function LivesDisplay({ lives }: { lives: number }) {
+  return (
+    <div className={styles.stat}>
+      <span>LIVES</span>
+      <div className={styles.lives}>
+        {[...Array(lives)].map((_, i) => (
+          <div key={i} className={styles.life} />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+const MemoizedLivesDisplay = memo(LivesDisplay)
+MemoizedLivesDisplay.displayName = 'LivesDisplay'
+
+function TurboMeter() {
+  return (
+    <div className={styles.stat}>
+      <span>TURBO</span>
+      <div className={styles.healthBarContainer}>
+        <div 
+          className={styles.healthBarFill}
+          style={{ 
+            width: TURBO_SETTINGS.DEFAULT_WIDTH,
+            backgroundColor: TURBO_SETTINGS.COLOR,
+            boxShadow: TURBO_SETTINGS.GLOW
           }}
         />
       </div>
+    </div>
+  )
+}
 
-      {/* Kill count */}
+const MemoizedTurboMeter = memo(TurboMeter)
+MemoizedTurboMeter.displayName = 'TurboMeter'
+
+function WeaponsPanel() {
+  return (
+    <MemoizedStatPanel className={styles.weaponsPanel}>
+      <div className={styles.stat}>
+        <span>WEAPON</span>
+        <span>SPECIAL</span>
+      </div>
+      <div className={styles.stat}>
+        <span>AMMO</span>
+        <span>12</span>
+      </div>
+      <div className={styles.stat}>
+        <span>TIME</span>
+        <span>{formatTime()}</span>
+      </div>
+    </MemoizedStatPanel>
+  )
+}
+
+const MemoizedWeaponsPanel = memo(WeaponsPanel)
+MemoizedWeaponsPanel.displayName = 'WeaponsPanel'
+
+function VelocityMeter({ velocity }: { velocity: number }) {
+  return (
+    <div className={styles.velocityMeter}>
+      {Math.abs(velocity).toFixed(0)}
+    </div>
+  )
+}
+
+const MemoizedVelocityMeter = memo(VelocityMeter)
+MemoizedVelocityMeter.displayName = 'VelocityMeter'
+
+function Minimap({ position }: { position: Position3D }) {
+  return (
+    <div className={styles.minimap}>
+      <div 
+        className={styles.playerDot}
+        style={{
+          position: 'absolute',
+          left: '50%',
+          top: '50%',
+          transform: `translate(-50%, -50%) rotate(${Math.atan2(position.z, position.x)}rad)`
+        }}
+      />
+    </div>
+  )
+}
+
+const MemoizedMinimap = memo(Minimap)
+MemoizedMinimap.displayName = 'Minimap'
+
+/**
+ * HUD component that displays game information
+ */
+export function HUD({ health, lives, velocity, position }: HUDProps) {
+  return (
+    <div className={styles.hudContainer}>
+      <MemoizedStatPanel>
+        <MemoizedHealthBar health={health} />
+        <MemoizedLivesDisplay lives={lives} />
+        <MemoizedTurboMeter />
+      </MemoizedStatPanel>
+
+      <MemoizedWeaponsPanel />
+      <MemoizedVelocityMeter velocity={velocity} />
+      <MemoizedMinimap position={position} />
+
       <div className={styles.killCount}>
         KILLS: 0
       </div>
     </div>
   );
-};
+}
