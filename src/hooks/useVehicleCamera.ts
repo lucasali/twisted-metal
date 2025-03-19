@@ -24,8 +24,8 @@ interface CameraConfig {
 }
 
 const DEFAULT_CAMERA_CONFIG: CameraConfig = {
-  height: 4,
-  distance: 8,
+  height: 2,
+  distance: 2.5,
   targetOffset: 2,
   smoothFactor: 0.05,
   minDistance: 3,
