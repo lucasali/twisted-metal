@@ -1,55 +1,140 @@
-import type { Vehicle } from '../types/vehicle'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
+import type { Controls } from '../types/controls'
 
-interface Controls {
-  forward: boolean
-  backward: boolean
-  left: boolean
-  right: boolean
+interface KeyConfig {
+  forward: string
+  backward: string
+  left: string
+  right: string
+  boost: string
 }
 
-export function useVehicleControls() {
-  const [controls, setControls] = useState<Controls>({
+const DEFAULT_KEY_CONFIG: KeyConfig = {
+  forward: 'w',
+  backward: 's',
+  left: 'a',
+  right: 'd',
+  boost: 'shift',
+} as const
+
+interface VehicleControls extends Controls {
+  boost: boolean
+  velocity: number
+  lastUpdateTime: number
+}
+
+const CONTROL_SETTINGS = {
+  acceleration: 0.5,
+  deceleration: 0.3,
+  boostMultiplier: 1.5,
+  maxVelocity: 10,
+  maxBoostVelocity: 15,
+  turnSpeed: 0.05,
+} as const
+
+/**
+ * Hook to handle vehicle keyboard controls with velocity and boost
+ */
+export function useVehicleControls(
+  keyConfig: Partial<KeyConfig> = {},
+  settings: Partial<typeof CONTROL_SETTINGS> = {}
+) {
+  // Memoize configurations
+  const finalKeyConfig = useMemo(
+    () => ({ ...DEFAULT_KEY_CONFIG, ...keyConfig }),
+    [keyConfig]
+  )
+
+  const finalSettings = useMemo(
+    () => ({ ...CONTROL_SETTINGS, ...settings }),
+    [settings]
+  )
+
+  // Control state with velocity
+  const [controls, setControls] = useState<VehicleControls>({
     forward: false,
     backward: false,
     left: false,
     right: false,
+    boost: false,
+    velocity: 0,
+    lastUpdateTime: performance.now(),
   })
 
+  // Memoized key mapping
+  const keyMap = useMemo(() => {
+    return Object.entries(finalKeyConfig).reduce((map, [action, key]) => {
+      // Handle special keys like 'shift'
+      if (key === 'shift') {
+        map['ShiftLeft'] = action as keyof VehicleControls
+        map['ShiftRight'] = action as keyof VehicleControls
+      } else {
+        map[key.toLowerCase()] = action as keyof VehicleControls
+      }
+      return map
+    }, {} as Record<string, keyof VehicleControls>)
+  }, [finalKeyConfig])
+
+  // Update velocity based on controls
+  const updateVelocity = useCallback((currentControls: VehicleControls) => {
+    const now = performance.now()
+    const deltaTime = (now - currentControls.lastUpdateTime) / 1000 // Convert to seconds
+    
+    let newVelocity = currentControls.velocity
+    const maxVel = currentControls.boost ? 
+      finalSettings.maxBoostVelocity : 
+      finalSettings.maxVelocity
+
+    // Apply acceleration/deceleration
+    if (currentControls.forward) {
+      const acceleration = currentControls.boost ? 
+        finalSettings.acceleration * finalSettings.boostMultiplier : 
+        finalSettings.acceleration
+      newVelocity = Math.min(maxVel, newVelocity + acceleration * deltaTime)
+    } else if (currentControls.backward) {
+      newVelocity = Math.max(-maxVel / 2, newVelocity - finalSettings.acceleration * deltaTime)
+    } else if (Math.abs(newVelocity) > 0.01) {
+      // Apply deceleration when no input
+      const deceleration = finalSettings.deceleration * deltaTime
+      newVelocity = Math.abs(newVelocity) <= deceleration ? 
+        0 : 
+        newVelocity - Math.sign(newVelocity) * deceleration
+    }
+
+    return {
+      ...currentControls,
+      velocity: newVelocity,
+      lastUpdateTime: now,
+    }
+  }, [finalSettings])
+
+  // Handle key events
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      switch (e.key.toLowerCase()) {
-        case 'w':
-          setControls(prev => ({ ...prev, forward: true }))
-          break
-        case 's':
-          setControls(prev => ({ ...prev, backward: true }))
-          break
-        case 'a':
-          setControls(prev => ({ ...prev, left: true }))
-          break
-        case 'd':
-          setControls(prev => ({ ...prev, right: true }))
-          break
+    const handleKey = (pressed: boolean) => (e: KeyboardEvent) => {
+      const key = e.code === 'ShiftLeft' || e.code === 'ShiftRight' ? 
+        e.code : 
+        e.key.toLowerCase()
+      
+      const control = keyMap[key]
+      if (control) {
+        e.preventDefault() // Prevent default browser behavior
+        setControls(prev => updateVelocity({
+          ...prev,
+          [control]: pressed,
+        }))
       }
     }
 
-    const handleKeyUp = (e: KeyboardEvent) => {
-      switch (e.key.toLowerCase()) {
-        case 'w':
-          setControls(prev => ({ ...prev, forward: false }))
-          break
-        case 's':
-          setControls(prev => ({ ...prev, backward: false }))
-          break
-        case 'a':
-          setControls(prev => ({ ...prev, left: false }))
-          break
-        case 'd':
-          setControls(prev => ({ ...prev, right: false }))
-          break
-      }
+    const handleKeyDown = handleKey(true)
+    const handleKeyUp = handleKey(false)
+
+    // Update velocity on animation frame
+    let frameId: number
+    const updateFrame = () => {
+      setControls(updateVelocity)
+      frameId = requestAnimationFrame(updateFrame)
     }
+    frameId = requestAnimationFrame(updateFrame)
 
     window.addEventListener('keydown', handleKeyDown)
     window.addEventListener('keyup', handleKeyUp)
@@ -57,58 +142,9 @@ export function useVehicleControls() {
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
       window.removeEventListener('keyup', handleKeyUp)
+      cancelAnimationFrame(frameId)
     }
-  }, [])
+  }, [keyMap, updateVelocity])
 
   return controls
-}
-
-// Funções auxiliares para cálculos físicos
-function clamp(value: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, value))
-}
-
-function lerp(start: number, end: number, t: number): number {
-  return start + (end - start) * t
-}
-
-function calculateSteeringFactor(speed: number): number {
-  // Reduz o ângulo de direção em velocidades mais altas
-  return 1 - clamp(Math.abs(speed) * 0.02, 0, 0.7)
-}
-
-export function updateMovement(vehicle: Vehicle, controls: Controls, delta: number) {
-  // Atualiza a velocidade
-  if (controls.forward) {
-    vehicle.speed = Math.min(vehicle.speed + vehicle.acceleration * delta, vehicle.maxSpeed)
-  }
-  else if (controls.backward) {
-    vehicle.speed = Math.max(vehicle.speed - vehicle.acceleration * delta, vehicle.maxReverseSpeed)
-  }
-  else {
-    // Desaceleração natural
-    if (Math.abs(vehicle.speed) < vehicle.deceleration * delta) {
-      vehicle.speed = 0
-    }
-    else {
-      vehicle.speed -= Math.sign(vehicle.speed) * vehicle.deceleration * delta
-    }
-  }
-
-  // Atualiza a rotação apenas quando o carro está em movimento
-  if (Math.abs(vehicle.speed) > 0.1) {
-    if (controls.left) {
-      vehicle.rotation.y += vehicle.turnSpeed * delta * Math.sign(vehicle.speed)
-    }
-    if (controls.right) {
-      vehicle.rotation.y -= vehicle.turnSpeed * delta * Math.sign(vehicle.speed)
-    }
-  }
-
-  // Atualiza a posição baseada na direção atual do carro
-  const forward = vehicle.speed * delta
-  vehicle.position.x -= Math.sin(vehicle.rotation.y) * forward
-  vehicle.position.z -= Math.cos(vehicle.rotation.y) * forward
-
-  return vehicle
 }

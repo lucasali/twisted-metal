@@ -1,138 +1,198 @@
-import { useRef } from 'react'
+import { useRef, memo } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { PerspectiveCamera } from '@react-three/drei'
 import type { Mesh, PerspectiveCamera as ThreePerspectiveCamera } from 'three'
-import { Vector3 } from 'three'
-import { useVehicleControls, updateMovement } from '../../systems/movement'
+import { useVehicleControls } from '../../systems/movement'
+import { useVehiclePhysics } from '../../hooks/useVehiclePhysics'
+import { useVehicleCamera } from '../../hooks/useVehicleCamera'
 import type { Vehicle as VehicleType } from '../../types/vehicle'
-import { DEFAULT_VEHICLE_CONFIG } from '../../types/vehicle'
 
+// Constants
+const VEHICLE_DIMENSIONS = {
+  body: { width: 1, height: 0.5, length: 2 },
+  cabin: { width: 0.8, height: 0.4, length: 1.2 },
+  bumper: { width: 0.8, height: 0.3, length: 0.1 },
+  light: { width: 0.2, height: 0.2, length: 0.1 },
+  wheel: { radius: 0.2, width: 0.1, segments: 32 },
+} as const
+
+type Position3D = readonly [number, number, number]
+
+const VEHICLE_POSITIONS = {
+  cabin: [0, 0.45, 0.2] as Position3D,
+  frontBumper: [0, 0, -1.05] as Position3D,
+  rearBumper: [0, 0, 1.05] as Position3D,
+  frontLights: [
+    [0.3, 0.15, -1.02],
+    [-0.3, 0.15, -1.02],
+  ] as readonly Position3D[],
+  rearLights: [
+    [0.3, 0.15, 1.02],
+    [-0.3, 0.15, 1.02],
+  ] as readonly Position3D[],
+  wheels: [
+    [0.5, -0.2, 0.7],   // front right
+    [-0.5, -0.2, 0.7],  // front left
+    [0.5, -0.2, -0.7],  // rear right
+    [-0.5, -0.2, -0.7], // rear left
+  ] as readonly Position3D[],
+} as const
+
+// Types
+interface PartProps {
+  position?: Position3D
+}
+
+interface LightProps extends PartProps {
+  isRear?: boolean
+}
+
+// Vehicle parts components
+const VehicleBody = memo(() => (
+  <mesh rotation={[0, Math.PI, 0]} castShadow>
+    <boxGeometry args={[
+      VEHICLE_DIMENSIONS.body.width,
+      VEHICLE_DIMENSIONS.body.height,
+      VEHICLE_DIMENSIONS.body.length
+    ]} />
+    <meshStandardMaterial color="red" />
+  </mesh>
+))
+VehicleBody.displayName = 'VehicleBody'
+
+const VehicleCabin = memo(() => (
+  <mesh position={VEHICLE_POSITIONS.cabin} rotation={[0, Math.PI, 0]} castShadow>
+    <boxGeometry args={[
+      VEHICLE_DIMENSIONS.cabin.width,
+      VEHICLE_DIMENSIONS.cabin.height,
+      VEHICLE_DIMENSIONS.cabin.length
+    ]} />
+    <meshStandardMaterial color="black" />
+  </mesh>
+))
+VehicleCabin.displayName = 'VehicleCabin'
+
+const VehicleBumper = memo(({ position = [0, 0, 0] }: PartProps) => (
+  <mesh position={position as Position3D} rotation={[0, Math.PI, 0]} castShadow>
+    <boxGeometry args={[
+      VEHICLE_DIMENSIONS.bumper.width,
+      VEHICLE_DIMENSIONS.bumper.height,
+      VEHICLE_DIMENSIONS.bumper.length
+    ]} />
+    <meshStandardMaterial color="gray" />
+  </mesh>
+))
+VehicleBumper.displayName = 'VehicleBumper'
+
+const VehicleLight = memo(({ position = [0, 0, 0], isRear = false }: LightProps) => {
+  const color = isRear ? '#ff0000' : 'yellow'
+  return (
+    <mesh position={position as Position3D} castShadow>
+      <boxGeometry args={[
+        VEHICLE_DIMENSIONS.light.width,
+        VEHICLE_DIMENSIONS.light.height,
+        VEHICLE_DIMENSIONS.light.length
+      ]} />
+      <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.5} />
+    </mesh>
+  )
+})
+VehicleLight.displayName = 'VehicleLight'
+
+const VehicleWheel = memo(({ position = [0, 0, 0] }: PartProps) => (
+  <mesh position={position as Position3D} rotation={[0, 0, Math.PI / 2]} castShadow>
+    <cylinderGeometry args={[
+      VEHICLE_DIMENSIONS.wheel.radius,
+      VEHICLE_DIMENSIONS.wheel.radius,
+      VEHICLE_DIMENSIONS.wheel.width,
+      VEHICLE_DIMENSIONS.wheel.segments
+    ]} />
+    <meshStandardMaterial color="black" />
+  </mesh>
+))
+VehicleWheel.displayName = 'VehicleWheel'
+
+// Vehicle mesh component
+const VehicleMesh = memo(() => (
+  <group position={[0, 0, 0]}>
+    {/* Main parts */}
+    <VehicleBody />
+    <VehicleCabin />
+    
+    {/* Bumpers */}
+    <VehicleBumper position={VEHICLE_POSITIONS.frontBumper} />
+    <VehicleBumper position={VEHICLE_POSITIONS.rearBumper} />
+    
+    {/* Lights */}
+    {VEHICLE_POSITIONS.frontLights.map((position, index) => (
+      <VehicleLight key={`front-light-${index}`} position={position} />
+    ))}
+    {VEHICLE_POSITIONS.rearLights.map((position, index) => (
+      <VehicleLight key={`rear-light-${index}`} position={position} isRear />
+    ))}
+    
+    {/* Wheels */}
+    {VEHICLE_POSITIONS.wheels.map((position, index) => (
+      <VehicleWheel key={`wheel-${index}`} position={position} />
+    ))}
+  </group>
+))
+VehicleMesh.displayName = 'VehicleMesh'
+
+/**
+ * Vehicle component with physics, controls and camera
+ */
 export function Vehicle() {
   const vehicleRef = useRef<Mesh>(null)
   const cameraRef = useRef<ThreePerspectiveCamera>(null)
-  const vehicleState = useRef<VehicleType>({ ...DEFAULT_VEHICLE_CONFIG })
+  
+  // Systems
   const controls = useVehicleControls()
+  const { updatePhysics } = useVehiclePhysics()
+  const { position: cameraPosition, updateCamera } = useVehicleCamera()
 
-  // Posição inicial da câmera mais alta e mais distante
-  const cameraPosition = useRef(new Vector3(0, 4, 8))
-  const cameraTarget = useRef(new Vector3())
-
+  // Update loop
   useFrame((state, delta) => {
-    if (!vehicleRef.current || !cameraRef.current)
-      return
+    if (!vehicleRef.current || !cameraRef.current) return
 
-    // Update vehicle movement
-    const updatedVehicle = updateMovement(vehicleState.current, controls, delta)
+    // Update vehicle physics and apply transforms
+    const vehicle = updatePhysics(controls, delta)
+    applyVehicleTransforms(vehicleRef.current, vehicle)
 
-    // Apply movement to the mesh
-    vehicleRef.current.position.set(
-      updatedVehicle.position.x,
-      updatedVehicle.position.y,
-      updatedVehicle.position.z,
-    )
-    vehicleRef.current.rotation.set(
-      updatedVehicle.rotation.x,
-      updatedVehicle.rotation.y,
-      updatedVehicle.rotation.z,
-    )
-
-    // Update camera target (ligeiramente à frente do carro)
-    cameraTarget.current.set(
-      updatedVehicle.position.x - Math.sin(updatedVehicle.rotation.y) * 2,
-      updatedVehicle.position.y + 1,
-      updatedVehicle.position.z - Math.cos(updatedVehicle.rotation.y) * 2,
-    )
-
-    // Calculate desired camera position (atrás do carro)
-    const cameraOffset = new Vector3(
-      Math.sin(updatedVehicle.rotation.y) * 8,
-      4,
-      Math.cos(updatedVehicle.rotation.y) * 8,
-    )
-    const desiredCameraPos = new Vector3(
-      updatedVehicle.position.x,
-      updatedVehicle.position.y,
-      updatedVehicle.position.z,
-    ).add(cameraOffset)
-
-    // Smooth camera movement using lerp
-    cameraPosition.current.lerp(desiredCameraPos, 0.05)
-    cameraRef.current.position.copy(cameraPosition.current)
-    cameraRef.current.lookAt(cameraTarget.current)
+    // Update camera
+    updateCamera(cameraRef.current, vehicle, state.scene)
   })
 
   return (
     <group>
+      {/* Camera */}
       <PerspectiveCamera
         ref={cameraRef}
         makeDefault
-        position={[0, 4, 8]}
+        position={cameraPosition.current.toArray()}
         fov={75}
       />
       
-      <group ref={vehicleRef} position={[0, 0.5, 0]}>
-        {/* Main body */}
-        <mesh rotation={[0, Math.PI, 0]} castShadow>
-          <boxGeometry args={[1, 0.5, 2]} />
-          <meshStandardMaterial color="red" />
-        </mesh>
-
-        {/* Cabin */}
-        <mesh position={[0, 0.45, 0.2]} rotation={[0, Math.PI, 0]} castShadow>
-          <boxGeometry args={[0.8, 0.4, 1.2]} />
-          <meshStandardMaterial color="black" />
-        </mesh>
-
-        {/* Front bumper */}
-        <mesh position={[0, 0, -1.05]} rotation={[0, Math.PI, 0]} castShadow>
-          <boxGeometry args={[0.8, 0.3, 0.1]} />
-          <meshStandardMaterial color="gray" />
-        </mesh>
-
-        {/* Rear bumper */}
-        <mesh position={[0, 0, 1.05]} rotation={[0, Math.PI, 0]} castShadow>
-          <boxGeometry args={[0.8, 0.3, 0.1]} />
-          <meshStandardMaterial color="gray" />
-        </mesh>
-
-        {/* Faróis dianteiros */}
-        <mesh position={[0.3, 0.15, -1.02]} castShadow>
-          <boxGeometry args={[0.2, 0.2, 0.1]} />
-          <meshStandardMaterial color="yellow" emissive="yellow" emissiveIntensity={0.5} />
-        </mesh>
-        <mesh position={[-0.3, 0.15, -1.02]} castShadow>
-          <boxGeometry args={[0.2, 0.2, 0.1]} />
-          <meshStandardMaterial color="yellow" emissive="yellow" emissiveIntensity={0.5} />
-        </mesh>
-
-        {/* Lanternas traseiras */}
-        <mesh position={[0.3, 0.15, 1.02]} castShadow>
-          <boxGeometry args={[0.2, 0.2, 0.1]} />
-          <meshStandardMaterial color="#ff0000" emissive="#ff0000" emissiveIntensity={0.5} />
-        </mesh>
-        <mesh position={[-0.3, 0.15, 1.02]} castShadow>
-          <boxGeometry args={[0.2, 0.2, 0.1]} />
-          <meshStandardMaterial color="#ff0000" emissive="#ff0000" emissiveIntensity={0.5} />
-        </mesh>
-
-        {/* Wheels - ajustadas para apontar para os lados */}
-        <mesh position={[0.5, -0.2, 0.7]} rotation={[0, 0, Math.PI / 2]} castShadow>
-          <cylinderGeometry args={[0.2, 0.2, 0.1, 32]} />
-          <meshStandardMaterial color="black" />
-        </mesh>
-        <mesh position={[-0.5, -0.2, 0.7]} rotation={[0, 0, Math.PI / 2]} castShadow>
-          <cylinderGeometry args={[0.2, 0.2, 0.1, 32]} />
-          <meshStandardMaterial color="black" />
-        </mesh>
-        <mesh position={[0.5, -0.2, -0.7]} rotation={[0, 0, Math.PI / 2]} castShadow>
-          <cylinderGeometry args={[0.2, 0.2, 0.1, 32]} />
-          <meshStandardMaterial color="black" />
-        </mesh>
-        <mesh position={[-0.5, -0.2, -0.7]} rotation={[0, 0, Math.PI / 2]} castShadow>
-          <cylinderGeometry args={[0.2, 0.2, 0.1, 32]} />
-          <meshStandardMaterial color="black" />
-        </mesh>
+      {/* Vehicle */}
+      <group ref={vehicleRef}>
+        <VehicleMesh />
       </group>
     </group>
+  )
+}
+
+/**
+ * Applies vehicle state transforms to the mesh
+ */
+function applyVehicleTransforms(mesh: Mesh, vehicle: VehicleType) {
+  mesh.position.set(
+    vehicle.position.x,
+    vehicle.position.y,
+    vehicle.position.z,
+  )
+  mesh.rotation.set(
+    vehicle.rotation.x,
+    vehicle.rotation.y,
+    vehicle.rotation.z,
   )
 }
