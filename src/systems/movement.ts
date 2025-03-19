@@ -1,5 +1,5 @@
-import { useEffect, useState, useMemo, useCallback } from 'react'
 import type { Controls } from '../types/controls'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 interface KeyConfig {
   forward: string
@@ -37,17 +37,17 @@ const CONTROL_SETTINGS = {
  */
 export function useVehicleControls(
   keyConfig: Partial<KeyConfig> = {},
-  settings: Partial<typeof CONTROL_SETTINGS> = {}
+  settings: Partial<typeof CONTROL_SETTINGS> = {},
 ) {
   // Memoize configurations
   const finalKeyConfig = useMemo(
     () => ({ ...DEFAULT_KEY_CONFIG, ...keyConfig }),
-    [keyConfig]
+    [keyConfig],
   )
 
   const finalSettings = useMemo(
     () => ({ ...CONTROL_SETTINGS, ...settings }),
-    [settings]
+    [settings],
   )
 
   // Control state with velocity
@@ -66,9 +66,10 @@ export function useVehicleControls(
     return Object.entries(finalKeyConfig).reduce((map, [action, key]) => {
       // Handle special keys like 'shift'
       if (key === 'shift') {
-        map['ShiftLeft'] = action as keyof VehicleControls
-        map['ShiftRight'] = action as keyof VehicleControls
-      } else {
+        map.ShiftLeft = action as keyof VehicleControls
+        map.ShiftRight = action as keyof VehicleControls
+      }
+      else {
         map[key.toLowerCase()] = action as keyof VehicleControls
       }
       return map
@@ -79,26 +80,28 @@ export function useVehicleControls(
   const updateVelocity = useCallback((currentControls: VehicleControls) => {
     const now = performance.now()
     const deltaTime = (now - currentControls.lastUpdateTime) / 1000 // Convert to seconds
-    
+
     let newVelocity = currentControls.velocity
-    const maxVel = currentControls.boost ? 
-      finalSettings.maxBoostVelocity : 
-      finalSettings.maxVelocity
+    const maxVel = currentControls.boost
+      ? finalSettings.maxBoostVelocity
+      : finalSettings.maxVelocity
 
     // Apply acceleration/deceleration
     if (currentControls.forward) {
-      const acceleration = currentControls.boost ? 
-        finalSettings.acceleration * finalSettings.boostMultiplier : 
-        finalSettings.acceleration
+      const acceleration = currentControls.boost
+        ? finalSettings.acceleration * finalSettings.boostMultiplier
+        : finalSettings.acceleration
       newVelocity = Math.min(maxVel, newVelocity + acceleration * deltaTime)
-    } else if (currentControls.backward) {
+    }
+    else if (currentControls.backward) {
       newVelocity = Math.max(-maxVel / 2, newVelocity - finalSettings.acceleration * deltaTime)
-    } else if (Math.abs(newVelocity) > 0.01) {
+    }
+    else if (Math.abs(newVelocity) > 0.01) {
       // Apply deceleration when no input
       const deceleration = finalSettings.deceleration * deltaTime
-      newVelocity = Math.abs(newVelocity) <= deceleration ? 
-        0 : 
-        newVelocity - Math.sign(newVelocity) * deceleration
+      newVelocity = Math.abs(newVelocity) <= deceleration
+        ? 0
+        : newVelocity - Math.sign(newVelocity) * deceleration
     }
 
     return {
@@ -111,10 +114,10 @@ export function useVehicleControls(
   // Handle key events
   useEffect(() => {
     const handleKey = (pressed: boolean) => (e: KeyboardEvent) => {
-      const key = e.code === 'ShiftLeft' || e.code === 'ShiftRight' ? 
-        e.code : 
-        e.key.toLowerCase()
-      
+      const key = e.code === 'ShiftLeft' || e.code === 'ShiftRight'
+        ? e.code
+        : e.key.toLowerCase()
+
       const control = keyMap[key]
       if (control) {
         e.preventDefault() // Prevent default browser behavior

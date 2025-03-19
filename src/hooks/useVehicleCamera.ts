@@ -1,7 +1,7 @@
-import { useRef, useMemo, useCallback } from 'react'
-import { Vector3, Raycaster } from 'three'
-import type { PerspectiveCamera, Object3D } from 'three'
+import type { Object3D, PerspectiveCamera } from 'three'
 import type { Vehicle } from '../types/vehicle'
+import { useCallback, useMemo, useRef } from 'react'
+import { Raycaster, Vector3 } from 'three'
 
 /**
  * Configuration options for the vehicle camera
@@ -40,14 +40,14 @@ export function useVehicleCamera(config: Partial<CameraConfig> = {}) {
   // Memoize configuration
   const finalConfig = useMemo(
     () => ({ ...DEFAULT_CAMERA_CONFIG, ...config }),
-    [config]
+    [config],
   )
 
   // Camera vectors
   const position = useRef(new Vector3(0, finalConfig.height, finalConfig.distance))
   const target = useRef(new Vector3())
   const desiredPosition = useRef(new Vector3())
-  
+
   // Collision detection
   const raycaster = useRef(new Raycaster())
   const tempVector = useRef(new Vector3())
@@ -72,12 +72,13 @@ export function useVehicleCamera(config: Partial<CameraConfig> = {}) {
     scene: Object3D,
     config: CameraConfig,
   ): void => {
-    if (!config.enableCollisionDetection) return
+    if (!config.enableCollisionDetection)
+      return
 
     // Cast ray from vehicle to camera
     tempVector.current.copy(vehicle.position)
     tempVector.current.y += 1 // Adjust for vehicle height
-    
+
     raycaster.current.set(tempVector.current, position.clone().sub(tempVector.current).normalize())
     const intersects = raycaster.current.intersectObjects(scene.children, true)
 
@@ -99,7 +100,7 @@ export function useVehicleCamera(config: Partial<CameraConfig> = {}) {
     config: CameraConfig,
   ): void => {
     const angle = vehicle.rotation.y
-    
+
     // Calculate ideal camera position behind vehicle
     desiredPosition.set(
       vehicle.position.x + Math.sin(angle) * config.distance,
@@ -141,4 +142,4 @@ export function useVehicleCamera(config: Partial<CameraConfig> = {}) {
     target,
     updateCamera,
   }
-} 
+}

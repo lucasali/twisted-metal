@@ -22,16 +22,16 @@ interface Rotation {
 export interface Vehicle {
   position: Position
   rotation: Rotation
-  
+
   // Movement properties
   speed: number
   turnSpeed: number
   velocity: number // Current velocity vector magnitude
-  
+
   // Speed limits
   maxSpeed: number
   maxReverseSpeed: number
-  
+
   // Physics properties
   acceleration: number
   deceleration: number
@@ -43,14 +43,14 @@ export interface Vehicle {
 export const DEFAULT_VEHICLE_CONFIG: Vehicle = {
   position: { x: 0, y: 0.5, z: 0 },
   rotation: { x: 0, y: 0, z: 0 },
-  
+
   speed: 0,
   turnSpeed: 2.5,
   velocity: 0,
-  
+
   maxSpeed: 15,
   maxReverseSpeed: -8,
-  
+
   acceleration: 15,
   deceleration: 10,
 }

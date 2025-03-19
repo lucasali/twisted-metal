@@ -6,4 +6,4 @@ export interface Controls {
   backward: boolean
   left: boolean
   right: boolean
-} 
+}

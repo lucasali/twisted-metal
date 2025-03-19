@@ -17,4 +17,4 @@ export function lerp(start: number, end: number, t: number): number {
  */
 export function calculateSteeringFactor(speed: number): number {
   return 1 - clamp(Math.abs(speed) * 0.02, 0, 0.7)
-} 
+}

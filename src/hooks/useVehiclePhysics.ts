@@ -1,6 +1,6 @@
-import { useRef } from 'react'
 import type { Controls } from '../types/controls'
 import type { Vehicle } from '../types/vehicle'
+import { useRef } from 'react'
 import { DEFAULT_VEHICLE_CONFIG } from '../types/vehicle'
 import { clamp } from '../utils/math'
 
@@ -45,23 +45,23 @@ function updateSpeed(vehicle: Vehicle, controls: Controls, delta: number): numbe
     return clamp(
       vehicle.speed + acceleration,
       -vehicle.maxSpeed,
-      vehicle.maxSpeed
+      vehicle.maxSpeed,
     )
   }
-  
+
   if (controls.backward) {
     return clamp(
       vehicle.speed - acceleration,
       vehicle.maxReverseSpeed,
-      vehicle.maxSpeed
+      vehicle.maxSpeed,
     )
   }
-  
+
   // Natural deceleration
   if (Math.abs(vehicle.speed) < deceleration) {
     return 0
   }
-  
+
   const direction = Math.sign(vehicle.speed)
   return vehicle.speed - direction * deceleration
 }
@@ -90,4 +90,4 @@ function updatePosition(vehicle: Vehicle, delta: number): void {
 
   vehicle.position.x -= Math.sin(angle) * displacement
   vehicle.position.z -= Math.cos(angle) * displacement
-} 
+}
