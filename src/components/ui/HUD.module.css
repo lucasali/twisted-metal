@@ -1,0 +1,303 @@
+.hudContainer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1000;
+  font-family: 'Courier New', monospace;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #ff6b00;
+  text-shadow: 0 0 5px #ff0000, 0 0 10px rgba(255, 0, 0, 0.5);
+}
+
+.statsPanel {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background: linear-gradient(135deg, 
+    rgba(20, 20, 20, 0.95),
+    rgba(40, 40, 40, 0.95));
+  padding: 15px;
+  border-radius: 3px;
+  border: 2px solid #444;
+  box-shadow: 
+    inset 0 0 20px rgba(0, 0, 0, 0.5),
+    0 0 15px rgba(255, 0, 0, 0.3);
+  clip-path: polygon(
+    0 10px,
+    10px 0,
+    calc(100% - 10px) 0,
+    100% 10px,
+    100% calc(100% - 10px),
+    calc(100% - 10px) 100%,
+    10px 100%,
+    0 calc(100% - 10px)
+  );
+}
+
+.weaponsPanel {
+  left: auto;
+  right: 20px;
+  min-width: 200px;
+}
+
+.statsPanel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.5' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.1'/%3E%3C/svg%3E");
+  opacity: 0.15;
+  pointer-events: none;
+}
+
+.statsPanel::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    linear-gradient(90deg, 
+      transparent,
+      rgba(255, 107, 0, 0.1) 20%,
+      rgba(255, 107, 0, 0.1) 80%,
+      transparent
+    );
+  opacity: 0.1;
+  pointer-events: none;
+}
+
+.stat {
+  margin: 8px 0;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  text-shadow: 0 0 5px #ff6b00;
+  position: relative;
+}
+
+.stat span {
+  min-width: 80px;
+  font-size: 14px;
+  font-weight: bold;
+  position: relative;
+}
+
+.stat span:last-child {
+  color: #fff;
+  text-shadow: 0 0 5px #ff6b00;
+}
+
+.healthBarContainer {
+  width: 150px;
+  height: 20px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid #666;
+  position: relative;
+  overflow: hidden;
+  clip-path: polygon(
+    0 0,
+    calc(100% - 5px) 0,
+    100% 5px,
+    100% 100%,
+    5px 100%,
+    0 calc(100% - 5px)
+  );
+}
+
+.healthBarContainer::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    linear-gradient(90deg,
+      transparent,
+      rgba(255, 255, 255, 0.1),
+      transparent
+    );
+  pointer-events: none;
+}
+
+.healthBarFill {
+  height: 100%;
+  transition: width 0.3s ease, background-color 0.3s ease;
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 10px,
+    rgba(0, 0, 0, 0.1) 10px,
+    rgba(0, 0, 0, 0.1) 20px
+  );
+}
+
+.healthBarFill.high {
+  background-color: #00ff00;
+  box-shadow: 0 0 10px #00ff00;
+}
+
+.healthBarFill.medium {
+  background-color: #ffff00;
+  box-shadow: 0 0 10px #ffff00;
+}
+
+.healthBarFill.low {
+  background-color: #ff0000;
+  box-shadow: 0 0 10px #ff0000;
+  animation: pulse 1s infinite;
+}
+
+.lives {
+  display: flex;
+  gap: 8px;
+}
+
+.life {
+  width: 25px;
+  height: 25px;
+  background: #ff0000;
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  position: relative;
+  transform: rotate(90deg);
+  box-shadow: 0 0 15px #ff0000;
+}
+
+.life::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  right: 2px;
+  bottom: 2px;
+  background: #ff6b00;
+  clip-path: inherit;
+  opacity: 0.7;
+}
+
+.minimap {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  width: 200px;
+  height: 200px;
+  background: rgba(0, 0, 0, 0.8);
+  border: 2px solid #444;
+  overflow: hidden;
+  clip-path: polygon(
+    20px 0,
+    calc(100% - 20px) 0,
+    100% 20px,
+    100% calc(100% - 20px),
+    calc(100% - 20px) 100%,
+    20px 100%,
+    0 calc(100% - 20px),
+    0 20px
+  );
+}
+
+.minimap::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    linear-gradient(90deg, 
+      transparent 49%,
+      rgba(255, 107, 0, 0.1) 50%,
+      transparent 51%
+    ),
+    linear-gradient(0deg,
+      transparent 49%,
+      rgba(255, 107, 0, 0.1) 50%,
+      transparent 51%
+    );
+  background-size: 40px 40px;
+  opacity: 0.5;
+}
+
+.playerDot {
+  width: 12px;
+  height: 12px;
+  background: #ff6b00;
+  clip-path: polygon(50% 0, 100% 100%, 50% 70%, 0 100%);
+  box-shadow: 0 0 10px #ff6b00;
+}
+
+.velocityMeter {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.8);
+  padding: 10px 30px;
+  font-size: 42px;
+  font-weight: bold;
+  border: 2px solid #444;
+  clip-path: polygon(
+    20px 0,
+    calc(100% - 20px) 0,
+    100% 100%,
+    0 100%
+  );
+  font-family: "Digital-7", 'Courier New', monospace;
+  color: #ff6b00;
+}
+
+.velocityMeter::before {
+  content: 'SPEED';
+  display: block;
+  font-size: 14px;
+  text-align: center;
+  opacity: 0.7;
+  margin-bottom: 5px;
+  font-family: 'Courier New', monospace;
+}
+
+.killCount {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 24px;
+  font-weight: bold;
+  text-shadow: 
+    0 0 5px #ff0000,
+    0 0 10px #ff0000,
+    0 0 15px #ff0000;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+/* Scanline effect */
+.hudContainer::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    transparent 50%,
+    rgba(0, 0, 0, 0.05) 50%
+  );
+  background-size: 100% 4px;
+  pointer-events: none;
+  opacity: 0.3;
+  z-index: 1001;
+}

@@ -1,6 +1,7 @@
 import { Canvas } from '@react-three/fiber'
-import { memo } from 'react'
+import { memo, useState, useEffect } from 'react'
 import { Vehicle } from './components/scene/Vehicle'
+import { HUD } from './components/ui/HUD'
 
 // Types
 type Position3D = readonly [number, number, number]
@@ -125,11 +126,43 @@ export function Scene({ children }: SceneProps) {
  * Main App component that sets up the game environment
  */
 export function App() {
+  const [gameState, setGameState] = useState({
+    health: 100,
+    lives: 3,
+    velocity: 0,
+    position: { x: 0, y: 0, z: 0 }
+  });
+
+  // Example of updating game state - in a real game, this would be driven by actual game events
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setGameState(prev => ({
+        ...prev,
+        velocity: Math.sin(Date.now() / 1000) * 10 + 10, // Example of changing velocity
+        position: {
+          x: Math.sin(Date.now() / 2000) * 5,
+          y: 0,
+          z: Math.cos(Date.now() / 2000) * 5
+        }
+      }));
+    }, 16); // ~60fps
+
+    return () => clearInterval(interval);
+  }, []);
+
   return (
-    <Scene>
-      <Vehicle />
-    </Scene>
-  )
+    <>
+      <Scene>
+        <Vehicle />
+      </Scene>
+      <HUD
+        health={gameState.health}
+        lives={gameState.lives}
+        velocity={gameState.velocity}
+        position={gameState.position}
+      />
+    </>
+  );
 }
 
 export default App
