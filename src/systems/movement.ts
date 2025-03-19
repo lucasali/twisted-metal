@@ -63,36 +63,52 @@ export function useVehicleControls() {
   return controls
 }
 
-export function updateMovement(vehicle: Vehicle, controls: Controls, _delta: number) {
-  // Update speed based on controls
+// Funções auxiliares para cálculos físicos
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value))
+}
+
+function lerp(start: number, end: number, t: number): number {
+  return start + (end - start) * t
+}
+
+function calculateSteeringFactor(speed: number): number {
+  // Reduz o ângulo de direção em velocidades mais altas
+  return 1 - clamp(Math.abs(speed) * 0.02, 0, 0.7)
+}
+
+export function updateMovement(vehicle: Vehicle, controls: Controls, delta: number) {
+  // Atualiza a velocidade
   if (controls.forward) {
-    vehicle.speed = Math.min(vehicle.speed + vehicle.acceleration, vehicle.maxSpeed)
+    vehicle.speed = Math.min(vehicle.speed + vehicle.acceleration * delta, vehicle.maxSpeed)
   }
   else if (controls.backward) {
-    vehicle.speed = Math.max(vehicle.speed - vehicle.acceleration, -vehicle.maxSpeed * 0.5)
+    vehicle.speed = Math.max(vehicle.speed - vehicle.acceleration * delta, vehicle.maxReverseSpeed)
   }
   else {
-    // Apply friction when no input
-    vehicle.speed *= 0.95
+    // Desaceleração natural
+    if (Math.abs(vehicle.speed) < vehicle.deceleration * delta) {
+      vehicle.speed = 0
+    }
+    else {
+      vehicle.speed -= Math.sign(vehicle.speed) * vehicle.deceleration * delta
+    }
   }
 
-  // Update rotation based on controls (only when moving)
-  if (Math.abs(vehicle.speed) > 0.01) {
+  // Atualiza a rotação apenas quando o carro está em movimento
+  if (Math.abs(vehicle.speed) > 0.1) {
     if (controls.left) {
-      vehicle.rotation.y += vehicle.rotationSpeed * Math.sign(vehicle.speed)
+      vehicle.rotation.y += vehicle.turnSpeed * delta * Math.sign(vehicle.speed)
     }
     if (controls.right) {
-      vehicle.rotation.y -= vehicle.rotationSpeed * Math.sign(vehicle.speed)
+      vehicle.rotation.y -= vehicle.turnSpeed * delta * Math.sign(vehicle.speed)
     }
   }
 
-  // Update velocity based on rotation and speed
-  vehicle.velocity.x = Math.sin(vehicle.rotation.y) * vehicle.speed
-  vehicle.velocity.z = Math.cos(vehicle.rotation.y) * vehicle.speed
-
-  // Update position
-  vehicle.position.x += vehicle.velocity.x
-  vehicle.position.z -= vehicle.velocity.z
+  // Atualiza a posição baseada na direção atual do carro
+  const forward = vehicle.speed * delta
+  vehicle.position.x -= Math.sin(vehicle.rotation.y) * forward
+  vehicle.position.z -= Math.cos(vehicle.rotation.y) * forward
 
   return vehicle
 }

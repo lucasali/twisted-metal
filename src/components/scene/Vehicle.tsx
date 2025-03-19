@@ -13,7 +13,8 @@ export function Vehicle() {
   const vehicleState = useRef<VehicleType>({ ...DEFAULT_VEHICLE_CONFIG })
   const controls = useVehicleControls()
 
-  const cameraPosition = useRef(new Vector3(0, 3, 5))
+  // Posição inicial da câmera mais alta e mais distante
+  const cameraPosition = useRef(new Vector3(0, 4, 8))
   const cameraTarget = useRef(new Vector3())
 
   useFrame((state, delta) => {
@@ -35,23 +36,27 @@ export function Vehicle() {
       updatedVehicle.rotation.z,
     )
 
-    // Update camera target
+    // Update camera target (ligeiramente à frente do carro)
     cameraTarget.current.set(
-      updatedVehicle.position.x,
+      updatedVehicle.position.x - Math.sin(updatedVehicle.rotation.y) * 2,
       updatedVehicle.position.y + 1,
-      updatedVehicle.position.z,
+      updatedVehicle.position.z - Math.cos(updatedVehicle.rotation.y) * 2,
     )
 
-    // Calculate desired camera position
+    // Calculate desired camera position (atrás do carro)
     const cameraOffset = new Vector3(
-      -Math.sin(updatedVehicle.rotation.y) * 5,
-      3,
-      -Math.cos(updatedVehicle.rotation.y) * 5,
+      Math.sin(updatedVehicle.rotation.y) * 8,
+      4,
+      Math.cos(updatedVehicle.rotation.y) * 8,
     )
-    const desiredCameraPos = cameraTarget.current.clone().add(cameraOffset)
+    const desiredCameraPos = new Vector3(
+      updatedVehicle.position.x,
+      updatedVehicle.position.y,
+      updatedVehicle.position.z,
+    ).add(cameraOffset)
 
     // Smooth camera movement using lerp
-    cameraPosition.current.lerp(desiredCameraPos, 0.1)
+    cameraPosition.current.lerp(desiredCameraPos, 0.05)
     cameraRef.current.position.copy(cameraPosition.current)
     cameraRef.current.lookAt(cameraTarget.current)
   })
@@ -61,49 +66,69 @@ export function Vehicle() {
       <PerspectiveCamera
         ref={cameraRef}
         makeDefault
-        position={[0, 3, 5]}
+        position={[0, 4, 8]}
         fov={75}
       />
       
       <group ref={vehicleRef} position={[0, 0.5, 0]}>
         {/* Main body */}
-        <mesh>
-          <boxGeometry args={[2, 0.5, 1]} />
+        <mesh rotation={[0, Math.PI, 0]} castShadow>
+          <boxGeometry args={[1, 0.5, 2]} />
           <meshStandardMaterial color="red" />
         </mesh>
 
         {/* Cabin */}
-        <mesh position={[0, 0.45, 0]}>
-          <boxGeometry args={[1.2, 0.4, 0.8]} />
+        <mesh position={[0, 0.45, 0.2]} rotation={[0, Math.PI, 0]} castShadow>
+          <boxGeometry args={[0.8, 0.4, 1.2]} />
           <meshStandardMaterial color="black" />
         </mesh>
 
         {/* Front bumper */}
-        <mesh position={[1.05, 0, 0]}>
-          <boxGeometry args={[0.1, 0.3, 0.8]} />
+        <mesh position={[0, 0, -1.05]} rotation={[0, Math.PI, 0]} castShadow>
+          <boxGeometry args={[0.8, 0.3, 0.1]} />
           <meshStandardMaterial color="gray" />
         </mesh>
 
         {/* Rear bumper */}
-        <mesh position={[-1.05, 0, 0]}>
-          <boxGeometry args={[0.1, 0.3, 0.8]} />
+        <mesh position={[0, 0, 1.05]} rotation={[0, Math.PI, 0]} castShadow>
+          <boxGeometry args={[0.8, 0.3, 0.1]} />
           <meshStandardMaterial color="gray" />
         </mesh>
 
-        {/* Wheels */}
-        <mesh position={[0.7, -0.2, 0.5]} rotation={[Math.PI / 2, 0, 0]}>
+        {/* Faróis dianteiros */}
+        <mesh position={[0.3, 0.15, -1.02]} castShadow>
+          <boxGeometry args={[0.2, 0.2, 0.1]} />
+          <meshStandardMaterial color="yellow" emissive="yellow" emissiveIntensity={0.5} />
+        </mesh>
+        <mesh position={[-0.3, 0.15, -1.02]} castShadow>
+          <boxGeometry args={[0.2, 0.2, 0.1]} />
+          <meshStandardMaterial color="yellow" emissive="yellow" emissiveIntensity={0.5} />
+        </mesh>
+
+        {/* Lanternas traseiras */}
+        <mesh position={[0.3, 0.15, 1.02]} castShadow>
+          <boxGeometry args={[0.2, 0.2, 0.1]} />
+          <meshStandardMaterial color="#ff0000" emissive="#ff0000" emissiveIntensity={0.5} />
+        </mesh>
+        <mesh position={[-0.3, 0.15, 1.02]} castShadow>
+          <boxGeometry args={[0.2, 0.2, 0.1]} />
+          <meshStandardMaterial color="#ff0000" emissive="#ff0000" emissiveIntensity={0.5} />
+        </mesh>
+
+        {/* Wheels - ajustadas para apontar para os lados */}
+        <mesh position={[0.5, -0.2, 0.7]} rotation={[0, 0, Math.PI / 2]} castShadow>
           <cylinderGeometry args={[0.2, 0.2, 0.1, 32]} />
           <meshStandardMaterial color="black" />
         </mesh>
-        <mesh position={[0.7, -0.2, -0.5]} rotation={[Math.PI / 2, 0, 0]}>
+        <mesh position={[-0.5, -0.2, 0.7]} rotation={[0, 0, Math.PI / 2]} castShadow>
           <cylinderGeometry args={[0.2, 0.2, 0.1, 32]} />
           <meshStandardMaterial color="black" />
         </mesh>
-        <mesh position={[-0.7, -0.2, 0.5]} rotation={[Math.PI / 2, 0, 0]}>
+        <mesh position={[0.5, -0.2, -0.7]} rotation={[0, 0, Math.PI / 2]} castShadow>
           <cylinderGeometry args={[0.2, 0.2, 0.1, 32]} />
           <meshStandardMaterial color="black" />
         </mesh>
-        <mesh position={[-0.7, -0.2, -0.5]} rotation={[Math.PI / 2, 0, 0]}>
+        <mesh position={[-0.5, -0.2, -0.7]} rotation={[0, 0, Math.PI / 2]} castShadow>
           <cylinderGeometry args={[0.2, 0.2, 0.1, 32]} />
           <meshStandardMaterial color="black" />
         </mesh>
