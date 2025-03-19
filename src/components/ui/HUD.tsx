@@ -1,5 +1,5 @@
-import React, { memo } from 'react';
-import styles from './HUD.module.css';
+import React, { memo } from 'react'
+import styles from './HUD.module.css'
 
 // Constants
 const HEALTH_THRESHOLDS = {
@@ -15,34 +15,36 @@ const TURBO_SETTINGS = {
 
 // Types
 interface Position3D {
-  x: number;
-  y: number;
-  z: number;
+  x: number
+  y: number
+  z: number
 }
 
 interface HUDProps {
-  health: number;
-  lives: number;
-  velocity: number;
-  position: Position3D;
+  health: number
+  lives: number
+  velocity: number
+  position: Position3D
 }
 
 interface StatPanelProps {
-  children: React.ReactNode;
-  className?: string;
+  children: React.ReactNode
+  className?: string
 }
 
 // Utility functions
-const formatTime = () => {
-  const date = new Date();
-  return `${String(date.getMinutes()).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}`;
-};
+function formatTime() {
+  const date = new Date()
+  return `${String(date.getMinutes()).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}`
+}
 
-const getHealthBarClass = (health: number) => {
-  if (health > HEALTH_THRESHOLDS.HIGH) return styles.high;
-  if (health > HEALTH_THRESHOLDS.MEDIUM) return styles.medium;
-  return styles.low;
-};
+function getHealthBarClass(health: number) {
+  if (health > HEALTH_THRESHOLDS.HIGH)
+    return styles.high
+  if (health > HEALTH_THRESHOLDS.MEDIUM)
+    return styles.medium
+  return styles.low
+}
 
 // Component parts
 function StatPanel({ children, className }: StatPanelProps) {
@@ -61,7 +63,7 @@ function HealthBar({ health }: { health: number }) {
     <div className={styles.stat}>
       <span>DAMAGE</span>
       <div className={styles.healthBarContainer}>
-        <div 
+        <div
           className={`${styles.healthBarFill} ${getHealthBarClass(health)}`}
           style={{ width: `${health}%` }}
         />
@@ -78,8 +80,8 @@ function LivesDisplay({ lives }: { lives: number }) {
     <div className={styles.stat}>
       <span>LIVES</span>
       <div className={styles.lives}>
-        {[...Array(lives)].map((_, i) => (
-          <div key={i} className={styles.life} />
+        {Array.from({ length: lives }).map((_, i) => (
+          <div key={`life-${i}`} className={styles.life} />
         ))}
       </div>
     </div>
@@ -94,12 +96,12 @@ function TurboMeter() {
     <div className={styles.stat}>
       <span>TURBO</span>
       <div className={styles.healthBarContainer}>
-        <div 
+        <div
           className={styles.healthBarFill}
-          style={{ 
+          style={{
             width: TURBO_SETTINGS.DEFAULT_WIDTH,
             backgroundColor: TURBO_SETTINGS.COLOR,
-            boxShadow: TURBO_SETTINGS.GLOW
+            boxShadow: TURBO_SETTINGS.GLOW,
           }}
         />
       </div>
@@ -146,13 +148,13 @@ MemoizedVelocityMeter.displayName = 'VelocityMeter'
 function Minimap({ position }: { position: Position3D }) {
   return (
     <div className={styles.minimap}>
-      <div 
+      <div
         className={styles.playerDot}
         style={{
           position: 'absolute',
           left: '50%',
           top: '50%',
-          transform: `translate(-50%, -50%) rotate(${Math.atan2(position.z, position.x)}rad)`
+          transform: `translate(-50%, -50%) rotate(${Math.atan2(position.z, position.x)}rad)`,
         }}
       />
     </div>
@@ -182,5 +184,5 @@ export function HUD({ health, lives, velocity, position }: HUDProps) {
         KILLS: 0
       </div>
     </div>
-  );
+  )
 }

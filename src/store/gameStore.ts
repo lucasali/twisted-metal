@@ -1,5 +1,5 @@
+import type { StateCreator } from 'zustand'
 import { create } from 'zustand'
-import { StateCreator } from 'zustand'
 
 interface Position {
   x: number
@@ -20,7 +20,7 @@ export const useGameStore = create<GameState>((set: StateCreator<GameState>['set
   lives: 3,
   velocity: 0,
   position: { x: 0, y: 0, z: 0 },
-  
+
   updateGameLoop: () => {
     set((state: GameState) => ({
       ...state,
@@ -28,8 +28,8 @@ export const useGameStore = create<GameState>((set: StateCreator<GameState>['set
       position: {
         x: Math.sin(Date.now() / 2000) * 5,
         y: 0,
-        z: Math.cos(Date.now() / 2000) * 5
-      }
+        z: Math.cos(Date.now() / 2000) * 5,
+      },
     }))
-  }
-})) 
+  },
+}))

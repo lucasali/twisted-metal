@@ -25,9 +25,10 @@ export const GridBoxes = memo(({ size = GRID_DIMENSIONS.size, spacing = GRID_DIM
             GRID_DIMENSIONS.box.width,
             GRID_DIMENSIONS.box.height,
             GRID_DIMENSIONS.box.depth,
-          ]} />
-          <meshStandardMaterial 
-            color={Math.random() > 0.5 ? GRID_COLORS.boxes[0] : GRID_COLORS.boxes[1]} 
+          ]}
+          />
+          <meshStandardMaterial
+            color={Math.random() > 0.5 ? GRID_COLORS.boxes[0] : GRID_COLORS.boxes[1]}
           />
         </mesh>,
       )

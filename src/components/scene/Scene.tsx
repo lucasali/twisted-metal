@@ -1,6 +1,6 @@
 import { Canvas } from '@react-three/fiber'
-import { Ground } from './Ground'
 import { GridBoxes } from './GridBoxes'
+import { Ground } from './Ground'
 import { Lighting } from './Lighting'
 
 interface SceneProps {
@@ -21,9 +21,9 @@ export function Scene({ children }: SceneProps) {
         <GridBoxes />
         <Lighting />
         {children}
-        <fog 
-          attach="fog" 
-          args={[FOG_SETTINGS.color, FOG_SETTINGS.near, FOG_SETTINGS.far]} 
+        <fog
+          attach="fog"
+          args={[FOG_SETTINGS.color, FOG_SETTINGS.near, FOG_SETTINGS.far]}
         />
       </Canvas>
     </div>

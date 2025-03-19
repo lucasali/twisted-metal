@@ -21,7 +21,8 @@ export const Ground = memo(() => (
       GRID_DIMENSIONS.ground.depth,
       GRID_COLORS.lines,
       GRID_COLORS.linesSecondary,
-    ]} />
+    ]}
+    />
   </>
 ))
 
